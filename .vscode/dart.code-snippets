@@ -1,0 +1,138 @@
+{
+  "Regular Window Controller Setup": {
+    "prefix": "windowcontroller",
+    "body": [
+      "final RegularWindowController windowController = RegularWindowController(",
+      "  delegate: RegularWindowControllerDelegate(),",
+      "  preferredSize: const Size(${1:800}, ${2:600}),",
+      "  title: '${3:Game of Life}',",
+      ");",
+      "",
+      "@override",
+      "void dispose() {",
+      "  windowController.dispose();",
+      "  super.dispose();",
+      "}"
+    ],
+    "description": "Create RegularWindowController with delegate and dispose method"
+  },
+  "View Anchor with Regular Window": {
+    "prefix": "viewanchor",
+    "body": [
+      "for (final window in ${1:_windows}.entries)",
+      "  ViewAnchor(",
+      "    view: RegularWindow(",
+      "      controller: window.value,",
+      "      child: ${2:UniverseScreen}(universeId: window.key),",
+      "    ),",
+      "    child: const SizedBox.shrink(),",
+      "  ),"
+    ],
+    "description": "Create ViewAnchor with RegularWindow for each window in collection"
+  },
+  "Universe Delegate Classes": {
+    "prefix": "windowDelegate",
+    "body": [
+      "class _${1:Universe}WindowDelegate extends RegularWindowControllerDelegate {",
+      "  final VoidCallback onDestroyed;",
+      "",
+      "  _${1:Universe}WindowDelegate({required this.onDestroyed});",
+      "",
+      "  @override",
+      "  void onWindowDestroyed() {",
+      "    onDestroyed();",
+      "    super.onWindowDestroyed();",
+      "  }",
+      "}"
+    ],
+    "description": "Create window data class and delegate with lifecycle management"
+  },
+  "Main Delegate Classes": {
+    "prefix": "appWindowDelegate",
+    "body": [
+      "class _${1:App}WindowDelegate extends RegularWindowControllerDelegate {",
+      "",
+      "  _${1:App}WindowDelegate();",
+      "",
+      "  @override",
+      "  void onWindowDestroyed() {",
+      "    super.onWindowDestroyed();",
+      "    exit(0);",
+      "  }",
+      "}"
+    ],
+    "description": "Create window data class and delegate with lifecycle management"
+  },
+  "Spawn universe in window": {
+    "prefix": "uniWin",
+    "body": [
+      "Future<void> spawanUniverseWindow() async {",
+      "final wc = await WindowController.create(",
+      "\t\tWindowConfiguration(arguments: ''),",
+      ");",
+      "wc.show();",
+      "}"
+    ]
+  },
+  "Main with args": {
+    "prefix": "argsMain",
+    "body": [
+      "void main(List<String> args) {",
+      "\tdebugPrint('Args: \\$args');",
+      "\trunApp(const _App());",
+      "}",
+      "",
+    ]
+  },
+  "Send chaos": {
+    "prefix": "chaosSend",
+    "body": [
+      "final _windows = <WindowController>[];",
+      "",
+      "void sendChaos() {",
+      "\tfor (final w in _windows) {",
+      "\t\tw.invokeMethod('updateChaos', chaosVelocity.value);",
+      "\t}",
+      "}",
+      "",
+      "@override",
+      "void initState() {",
+      "\tsuper.initState();",
+      "\tchaosVelocity.addListener(sendChaos);",
+      "}",
+      "",
+      "@override",
+      "void dispose() {",
+      "\tsuper.dispose();",
+      "\tchaosVelocity.removeListener(sendChaos);",
+      "}",
+      "",
+    ]
+  },
+  "Update chaos": {
+    "prefix": "chaosUpdate",
+    "body": [
+      "\t\tfinal wc = await WindowController.fromCurrentEngine();",
+      "\t\twc.setWindowMethodHandler((call) async {",
+      "\t\t\tif (call.method == 'updateChaos') {",
+      "\t\t\t\tchaosVelocity.value = call.arguments as double;",
+      "\t\t\t}",
+      "\t\t});"
+    ]
+  },
+  "Universe App": {
+    "prefix": "uniApp",
+    "body": [
+      "class _UniverseApp extends StatelessWidget {",
+      "\tconst _UniverseApp();",
+      "\t@override",
+      "\tWidget build(BuildContext c) => MaterialApp(",
+      "\t\ttitle: 'Universe',",
+      "\t\ttheme: ThemeData.dark(),",
+      "\t\tdebugShowCheckedModeBanner: false,",
+      "\t\thome: Scaffold(body: UniverseScreen(universeId: 1)),",
+      "\t);",
+      "}"
+    ]
+  }
+}

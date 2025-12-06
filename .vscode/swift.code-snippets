@@ -1,0 +1,14 @@
+{
+  "Flutter Engine Initialization": {
+    "prefix": "flutterengine",
+    "body": [
+      "var engine: FlutterEngine?",
+      "",
+      "override func applicationDidFinishLaunching(_ notification: Notification) {",
+      "  engine = FlutterEngine(name: \"${1:project}\", project: nil)",
+      "  engine?.run(withEntrypoint:nil)",
+      "}"
+    ],
+    "description": "Initialize Flutter engine in AppDelegate"
+  }
+}
