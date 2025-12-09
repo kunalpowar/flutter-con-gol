@@ -1,3 +1,4 @@
+import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:flutter/material.dart';
 import 'tabs.dart';
 import 'universe.dart';
@@ -5,7 +6,20 @@ import 'widgets/widgets.dart';
 
 final chaosVelocity = ValueNotifier<double>(3.0);
 
-void main() => runApp(const _App());
+Future<void> main(List<String> args) async {
+  WidgetsFlutterBinding.ensureInitialized();
+  if (args.firstOrNull == 'multi_window') {
+    final wc = await WindowController.fromCurrentEngine();
+    wc.setWindowMethodHandler((call) async {
+      if (call.method == 'updateChaos') {
+        chaosVelocity.value = call.arguments as double;
+      }
+    });
+    runApp(const _UniverseOnlyApp());
+  } else {
+    runApp(const _App());
+  }
+}
 
 class _App extends StatelessWidget {
   const _App();
@@ -18,6 +32,17 @@ class _App extends StatelessWidget {
   );
 }
 
+class _UniverseOnlyApp extends StatelessWidget {
+  const _UniverseOnlyApp();
+  @override
+  Widget build(BuildContext c) => MaterialApp(
+    title: 'Universe',
+    theme: ThemeData.dark(),
+    debugShowCheckedModeBanner: false,
+    home: Scaffold(body: const UniverseScreen(universeId: 1)),
+  );
+}
+
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
   @override
@@ -25,6 +50,34 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> with TabsManager {
+  final _windows = <WindowController>[];
+
+  Future<void> spawnUniverseWindow() async {
+    final wc = await WindowController.create(
+      WindowConfiguration(arguments: ''),
+    );
+    _windows.add(wc);
+    wc.show();
+  }
+
+  void sendChaos() {
+    for (final w in _windows) {
+      w.invokeMethod('updateChaos', chaosVelocity.value);
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    chaosVelocity.addListener(sendChaos);
+  }
+
+  @override
+  void dispose() {
+    chaosVelocity.removeListener(sendChaos);
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext c) {
     return Scaffold(
@@ -62,7 +115,7 @@ class _MainScreenState extends State<MainScreen> with TabsManager {
                   onChanged: (v) => chaosVelocity.value = v,
                 ),
               ),
-              SpawnButton(onPressed: spawnTab),
+              SpawnButton(onPressed: spawnUniverseWindow),
             ],
           ),
         ),
