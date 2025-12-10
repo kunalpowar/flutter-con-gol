@@ -1,45 +1,47 @@
-import 'package:desktop_multi_window/desktop_multi_window.dart';
+// ignore_for_file: invalid_use_of_internal_member
+
 import 'package:flutter/material.dart';
+// ignore: implementation_imports
+import 'package:flutter/src/widgets/_window.dart';
 import 'tabs.dart';
 import 'universe.dart';
 import 'widgets/widgets.dart';
 
 final chaosVelocity = ValueNotifier<double>(3.0);
 
-Future<void> main(List<String> args) async {
-  WidgetsFlutterBinding.ensureInitialized();
-  if (args.firstOrNull == 'multi_window') {
-    final wc = await WindowController.fromCurrentEngine();
-    wc.setWindowMethodHandler((call) async {
-      if (call.method == 'updateChaos') {
-        chaosVelocity.value = call.arguments as double;
-      }
-    });
-    runApp(const _UniverseOnlyApp());
-  } else {
-    runApp(const _App());
-  }
+void main() {
+  runWidget(const _App());
 }
 
-class _App extends StatelessWidget {
+class _App extends StatefulWidget {
   const _App();
+
   @override
-  Widget build(BuildContext c) => MaterialApp(
-    title: 'Multiverse of Madness',
-    theme: ThemeData.dark(),
-    debugShowCheckedModeBanner: false,
-    home: const MainScreen(),
-  );
+  State<_App> createState() => _AppState();
 }
 
-class _UniverseOnlyApp extends StatelessWidget {
-  const _UniverseOnlyApp();
+class _AppState extends State<_App> {
+  final RegularWindowController windowController = RegularWindowController(
+    delegate: RegularWindowControllerDelegate(),
+    preferredSize: const Size(800, 600),
+    title: 'Game of Life',
+  );
+
   @override
-  Widget build(BuildContext c) => MaterialApp(
-    title: 'Universe',
-    theme: ThemeData.dark(),
-    debugShowCheckedModeBanner: false,
-    home: Scaffold(body: const UniverseScreen(universeId: 1)),
+  void dispose() {
+    windowController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext c) => RegularWindow(
+    controller: windowController,
+    child: MaterialApp(
+      title: 'Multiverse of Madness',
+      theme: ThemeData.dark(),
+      debugShowCheckedModeBanner: false,
+      home: const MainScreen(),
+    ),
   );
 }
 
@@ -49,33 +51,32 @@ class MainScreen extends StatefulWidget {
   State<MainScreen> createState() => _MainScreenState();
 }
 
+class _UniverseWindowDelegate extends RegularWindowControllerDelegate {
+  final VoidCallback onDestroyed;
+
+  _UniverseWindowDelegate({required this.onDestroyed});
+
+  @override
+  void onWindowDestroyed() {
+    onDestroyed();
+    super.onWindowDestroyed();
+  }
+}
+
 class _MainScreenState extends State<MainScreen> with TabsManager {
-  final _windows = <WindowController>[];
+  final _windows = <int, RegularWindowController>{};
+  int next = 0;
 
   Future<void> spawnUniverseWindow() async {
-    final wc = await WindowController.create(
-      WindowConfiguration(arguments: ''),
+    final id = next++;
+    final wc = RegularWindowController(
+      delegate: _UniverseWindowDelegate(
+        onDestroyed: () => setState(() => _windows.remove(id)),
+      ),
+      preferredSize: const Size(400, 300),
+      title: 'Game of Life',
     );
-    _windows.add(wc);
-    wc.show();
-  }
-
-  void sendChaos() {
-    for (final w in _windows) {
-      w.invokeMethod('updateChaos', chaosVelocity.value);
-    }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    chaosVelocity.addListener(sendChaos);
-  }
-
-  @override
-  void dispose() {
-    chaosVelocity.removeListener(sendChaos);
-    super.dispose();
+    setState(() => _windows[id] = wc);
   }
 
   @override
@@ -89,6 +90,14 @@ class _MainScreenState extends State<MainScreen> with TabsManager {
             onPressed: spawnTab,
             icon: const Icon(Icons.add_box_outlined),
           ),
+          for (final window in _windows.entries)
+            ViewAnchor(
+              view: RegularWindow(
+                controller: window.value,
+                child: UniverseScreen(universeId: window.key),
+              ),
+              child: const SizedBox.shrink(),
+            ),
         ],
         bottom: buildTabBar(),
       ),
